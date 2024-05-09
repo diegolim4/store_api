@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status, Query
 from pydantic import UUID4
 from store.core.exceptions import NotFoundException
 
@@ -32,8 +32,18 @@ async def get(
 
 
 @router.get(path="/", status_code=status.HTTP_200_OK)
-async def query(usecase: ProductUsecase = Depends()) -> List[ProductOut]:
-    return await usecase.query()
+async def query(
+    min_price: float = Query(None, description="Preço mínimo"),
+    max_price: float = Query(None, description="Preço máximo"),
+    usecase: ProductUsecase = Depends()) -> List[ProductOut]:
+    products =  await usecase.query()
+
+    if min_price is not None:
+        products = [product for product in products if product.price >= min_price]
+    if max_price is not None:
+        products = [product for product in products if product.price <= max_price]
+
+    return products
 
 
 @router.patch(path="/{id}", status_code=status.HTTP_200_OK)

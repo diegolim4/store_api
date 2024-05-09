@@ -6,6 +6,9 @@ from store.core.exceptions import NotFoundException
 from store.schemas.product import ProductIn, ProductOut, ProductUpdate, ProductUpdateOut
 from store.usecases.product import ProductUsecase
 
+from datetime import datetime
+
+
 router = APIRouter(tags=["products"])
 
 
@@ -39,7 +42,20 @@ async def patch(
     body: ProductUpdate = Body(...),
     usecase: ProductUsecase = Depends(),
 ) -> ProductUpdateOut:
-    return await usecase.update(id=id, body=body)
+    try:        
+        
+        product = await usecase.get(id=id)
+    
+    except NotFoundException as exc:
+        
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message)
+
+    product.updated_at = datetime.utcnow()
+    
+    updated_product = await usecase.update(id=id, body=body)
+    
+    return updated_product
+
 
 
 @router.delete(path="/{id}", status_code=status.HTTP_204_NO_CONTENT)
